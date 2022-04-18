@@ -1,3 +1,35 @@
+This is forked repogitory from [Attr2Font](https://github.com/hologerry/Attr2Font).
+
+I made some modifications while using it to apply it to the Korean dataset.(korean language project is [here](https://github.com/withdongyeong/KDT_B4))
+
+1. There is an issue where a zero is inserted in front of the file name intermittently. I don't know the cause, so I took temporary measure.
+2. Fixed a typo in the Continue Learning function
+3. Some dataset-related parameters are hard-coded. I will not modify them separately, but to use this model, you need to modify them according to the dataset.(in dataloader.py, lines 226-230)
+4. I add inference function to web deploy(The attribute value is temporarily hard-coded and needs to be updated during web distribution later.)
+   use `--phase inference` `--check_path check_path` `--infer_path infer_path`
+6. Dataset download from original git has expired. A point to be aware of when building a custom dataset is that the character class, that is, the file name must start from 10.
+
+   Ex) If you create a data set with the following 5 characters
+   
+   a b c d e
+
+   The data set structure is as follows,
+   
+   - dataset_root_dir
+      - explor_all (if you want change it, code fix is needed(options.py and dataloader.py line 226)
+         - font_A
+            - 10.png (a image)
+            - 11.png (b image)
+            - 12.png (c image)
+            - 13.png (d image)
+            - 14.png (e image)
+         - font_B
+            - 10.png (a image)
+            - 11.png (b image)
+            - 12.png (c image)
+            - 13.png (d image)
+            - 14.png (e image)
+
 # Attr2Font
 ## Introduction
 
