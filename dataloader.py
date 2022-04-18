@@ -161,6 +161,12 @@ class ImageAttr(data.Dataset):
             styles_A.append(filename_A)
         else:
             for char in style_chars:
+                """
+                There is an issue where a zero is inserted in front of the file name intermittently.
+                I don't know the cause, so I took temporary measure
+                """
+                if len(os.path.basename(style_A).split(".")[0]) == 3:            
+                    style_A = os.path.join(os.path.dirname(style_A), os.path.basename(style_A)[1:])
                 styles_A.append(rreplace(filename_A, str(charclass_A+10), str(char), 1))
 
         random.shuffle(self.chars)
@@ -170,6 +176,12 @@ class ImageAttr(data.Dataset):
             styles_B.append(filename_B)
         else:
             for char in style_chars:
+                """
+                There is an issue where a zero is inserted in front of the file name intermittently.
+                I don't know the cause, so I took temporary measure
+                """
+                if len(os.path.basename(style_B).split(".")[0]) == 3:            
+                    style_B = os.path.join(os.path.dirname(style_B), os.path.basename(style_B)[1:])
                 styles_B.append(rreplace(filename_B, str(charclass_B+10), str(char), 1))
 
         image_A = Image.open(os.path.join(self.image_dir, filename_A)).convert('RGB')
