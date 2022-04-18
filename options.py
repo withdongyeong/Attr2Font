@@ -22,6 +22,8 @@ def get_parser():
                         help="attribute embedding channel, attribute id to attr_embed, must same as image size")
     parser.add_argument("--style_out_channel", type=int, default=128, help="number of style embedding channel")
     parser.add_argument("--n_res_blocks", type=int, default=16, help="number of residual blocks in style encoder")
+    parser.add_argument("--check_path", type=str, default="./bestModel")
+    parser.add_argument("--infer_path", type=str, default="./inference")
     # Model
     parser.add_argument("--attention", type=bool, default=True, help="whether use the self attention layer in the generator")
     parser.add_argument("--dis_pred", type=bool, default=True, help="whether the discriminator predict the attributes")
@@ -34,7 +36,7 @@ def get_parser():
     parser.add_argument("--check_freq", type=int, default=10, help='frequency of checkpoint epoch')
     parser.add_argument("--sample_freq", type=int, default=400, help="frequency of sample validation batch")
     parser.add_argument("--log_freq", type=int, default=100, help="frequency of sample training batch")
-    parser.add_argument("--phase", type=str, default='train', choices=['train', 'test', 'test_interp'], help='mode')
+    parser.add_argument("--phase", type=str, default='train', choices=['train', 'test', 'test_interp', 'inference'], help='mode')
     parser.add_argument("--test_epoch", type=int, default=0, help='epoch to test, 0 to test all epoches')
     parser.add_argument("--interp_cnt", type=int, default=11, help='number of interpolations')
     # Lambdas

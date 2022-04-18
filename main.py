@@ -14,6 +14,132 @@ from vgg_cx import VGG19_CX
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+def inference(opts):
+    import time 
+    start = time.time()
+    
+    # Dirs
+    log_dir = os.path.join("experiments", opts.experiment_name)
+    checkpoint_dir = opts.check_path
+    results_dir = opts.infer_path
+    # Path to data
+    image_dir = os.path.join(opts.data_root, opts.dataset_name, "image")
+    attribute_path = os.path.join(opts.data_root, opts.dataset_name, "attributes.txt")
+    
+    # test_dataloader
+    test_dataloader = get_loader(image_dir, attribute_path,
+                                 dataset_name=opts.dataset_name,
+                                 image_size=opts.img_size,
+                                 n_style=opts.n_style, batch_size=52,
+                                 mode='test', binary=False)
+    # Model
+    generator = GeneratorStyle(n_style=opts.n_style, attr_channel=opts.attr_channel,
+                               style_out_channel=opts.style_out_channel,
+                               n_res_blocks=opts.n_res_blocks,
+                               attention=opts.attention)
+    # Attrbute embedding
+    # attribute: N x 37 -> N x 37 x 64
+    attribute_embed = nn.Embedding(opts.attr_channel, opts.attr_embed)
+    # unsupervise font num + 1 dummy id (for supervise)
+    attr_unsuper_tolearn = nn.Embedding(opts.unsuper_num+1, opts.attr_channel)  # attribute intensity
+
+    generator = generator.to(device)
+    attribute_embed = attribute_embed.to(device)
+    attr_unsuper_tolearn = attr_unsuper_tolearn.to(device)
+
+    gen_file = os.path.join(checkpoint_dir, f"best_G.pth")
+    attribute_embed_file = os.path.join(checkpoint_dir, f"attribute_embed_best.pth")
+    attr_unsuper_file = os.path.join(checkpoint_dir, f"attr_unsuper_embed_best.pth")
+    
+    generator.load_state_dict(torch.load(gen_file))
+    attribute_embed.load_state_dict(torch.load(attribute_embed_file))
+    attr_unsuper_tolearn.load_state_dict(torch.load(attr_unsuper_file))
+
+    with torch.no_grad():
+        test_attrid = torch.tensor([i for i in range(opts.attr_channel)]).to(device)
+        test_attrid = test_attrid.repeat(52, 1)  # 52 is char number
+        
+        test_batch = next(iter(test_dataloader)) 
+        test_img_A = test_batch['img_A'].to(device)
+        test_fontembed_A = test_batch['fontembed_A'].to(device)
+        test_styles_A = test_batch['styles_A'].to(device)
+
+        test_img_B = test_batch['img_B'].to(device)
+
+        test_attr_A_intensity = attr_unsuper_tolearn(test_fontembed_A)
+        test_attr_A_intensity = test_attr_A_intensity.view(test_attr_A_intensity.size(0), test_attr_A_intensity.size(2))  # noqa
+        test_attr_A_intensity = torch.sigmoid(3*test_attr_A_intensity)  # convert to [0, 1]
+
+        test_attr_B_intensity = test_batch['attr_B'].to(device)
+
+        test_attr_raw_A = attribute_embed(test_attrid)
+        test_attr_raw_B = attribute_embed(test_attrid)
+
+        test_intensity_A_u = test_attr_A_intensity.unsqueeze(-1)
+        test_intensity_B_u = test_attr_B_intensity.unsqueeze(-1)
+
+        test_attr_A = test_intensity_A_u * test_attr_raw_A
+        test_attr_B = test_intensity_B_u * test_attr_raw_B
+
+        test_intensity = test_attr_B_intensity - test_attr_A_intensity
+        test_attr = test_attr_B - test_attr_A
+
+        one_batch_random = torch.rand_like(test_attr_B_intensity[0]).unsqueeze(0).to(device)
+
+        attributes = [[
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+        ]]
+        test_intensity_B_beta = torch.tensor(attributes).to(device)
+        test_intensity_B_beta_u = test_intensity_B_beta.unsqueeze(-1)
+        test_attr_B_beta = test_intensity_B_beta_u * test_attr_raw_B.clone().detach()
+        test_intensity_beta = test_intensity_B_beta - test_attr_A_intensity.clone().detach()
+        test_attr_beta = test_attr_B_beta - test_attr_A.clone().detach()
+        test_fake_B_beta, _ = generator(test_img_A.clone().detach(), test_styles_A.clone().detach(),
+                                        test_intensity_beta, test_attr_beta)
+
+        img_sample_random_attr=test_fake_B_beta.data
+
+        for idx, img in enumerate(img_sample_random_attr): 
+            save_file_sp = os.path.join(results_dir, f"inference_{idx}.png")
+            save_image(img, save_file_sp, normalize=True, padding=0)
+        end = time.time()
+        print("elapsed time : ", end - start) 
 
 def train(opts):
     # Dirs
@@ -584,6 +710,10 @@ def main():
     elif opts.phase == 'test_interp':
         print(f"Testing interpolation on experiment {opts.experiment_name}...")
         interp(opts)
+    elif opts.phase == 'inference':
+        print(f"inference start {opts.experiment_name}...")
+        os.makedirs(opts.infer_path, exist_ok=True)
+        inference(opts)
     else:
         raise NotImplementedError
 
