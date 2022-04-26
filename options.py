@@ -24,6 +24,7 @@ def get_parser():
     parser.add_argument("--n_res_blocks", type=int, default=16, help="number of residual blocks in style encoder")
     parser.add_argument("--check_path", type=str, default="./bestModel")
     parser.add_argument("--infer_path", type=str, default="./inference")
+    parser.add_argument("--attr_list", nargs=37, type=float, default=None)
     # Model
     parser.add_argument("--attention", type=bool, default=True, help="whether use the self attention layer in the generator")
     parser.add_argument("--dis_pred", type=bool, default=True, help="whether the discriminator predict the attributes")
