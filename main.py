@@ -89,7 +89,7 @@ def inference(opts):
         attr_list = opts.attr_list
         attributes = []
         for attr in attr_list:
-            attributes.append(attr)
+            attributes.append(round(0.01 * attr, 2))
         attributes = [attributes]
         test_intensity_B_beta = torch.tensor(attributes).to(device)
         test_intensity_B_beta_u = test_intensity_B_beta.unsqueeze(-1)
