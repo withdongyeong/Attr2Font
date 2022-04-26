@@ -165,8 +165,6 @@ class ImageAttr(data.Dataset):
                 There is an issue where a zero is inserted in front of the file name intermittently.
                 I don't know the cause, so I took temporary measure
                 """
-                if len(os.path.basename(style_A).split(".")[0]) == 3:            
-                    style_A = os.path.join(os.path.dirname(style_A), os.path.basename(style_A)[1:])
                 styles_A.append(rreplace(filename_A, str(charclass_A+10), str(char), 1))
 
         random.shuffle(self.chars)
@@ -180,8 +178,6 @@ class ImageAttr(data.Dataset):
                 There is an issue where a zero is inserted in front of the file name intermittently.
                 I don't know the cause, so I took temporary measure
                 """
-                if len(os.path.basename(style_B).split(".")[0]) == 3:            
-                    style_B = os.path.join(os.path.dirname(style_B), os.path.basename(style_B)[1:])
                 styles_B.append(rreplace(filename_B, str(charclass_B+10), str(char), 1))
 
         image_A = Image.open(os.path.join(self.image_dir, filename_A)).convert('RGB')
@@ -189,10 +185,14 @@ class ImageAttr(data.Dataset):
         # Open and transform style images
         style_imgs_A = []
         for style_A in styles_A:
+            if len(os.path.basename(style_A).split(".")[0]) == 3:            
+                    style_A = os.path.join(os.path.dirname(style_A), os.path.basename(style_A)[1:])
             style_imgs_A.append(self.transform(Image.open(os.path.join(self.image_dir, style_A)).convert('RGB')))
         style_imgs_A = torch.cat(style_imgs_A)
         style_imgs_B = []
         for style_B in styles_B:
+            if len(os.path.basename(style_B).split(".")[0]) == 3:            
+                    style_B = os.path.join(os.path.dirname(style_B), os.path.basename(style_B)[1:])
             style_imgs_B.append(self.transform(Image.open(os.path.join(self.image_dir, style_B)).convert('RGB')))
         style_imgs_B = torch.cat(style_imgs_B)
 
