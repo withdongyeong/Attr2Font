@@ -149,7 +149,7 @@ def train(opts):
                                style_out_channel=opts.style_out_channel,
                                n_res_blocks=opts.n_res_blocks,
                                attention=opts.attention)
-    discriminator = DiscriminatorWithClassifier()
+    discriminator = DiscriminatorWithClassifier(attr_channel=opts.attr_channel)
     # Attrbute embedding
     # attribute: N x 37 -> N x 37 x 64
     attribute_embed = nn.Embedding(opts.attr_channel, opts.attr_embed)

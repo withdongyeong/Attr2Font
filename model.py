@@ -345,6 +345,7 @@ class DiscriminatorWithClassifier(nn.Module):
     def __init__(self, in_channel=3, attr_channel=37, pred_attr=True):
         super(DiscriminatorWithClassifier, self).__init__()
         self.pred_attr = pred_attr
+        self.attr_channel = attr_channel=37
 
         def discriminator_block(in_filters, out_filters, normalize=True):
             layers = [nn.Conv2d(in_filters, out_filters, 4, 2, 1)]
@@ -362,7 +363,7 @@ class DiscriminatorWithClassifier(nn.Module):
         )
         self.f = nn.Conv2d(256, 1, 4, padding=1, bias=False)
         if pred_attr:
-            self.auxiliary_cls = AttrClassifier()
+            self.auxiliary_cls = AttrClassifier(attr_channel=self.attr_channel)
 
     def forward(self, img_A, img_B, charclass, attr_B_intensity):
         if self.pred_attr:
