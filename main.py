@@ -18,20 +18,21 @@ def inference(opts):
     import time 
     start = time.time()
     
-    # Dirs
+     # Dirs
     log_dir = os.path.join("experiments", opts.experiment_name)
     checkpoint_dir = opts.check_path
     results_dir = opts.infer_path
+    
     # Path to data
     image_dir = os.path.join(opts.data_root, opts.dataset_name, "image")
     attribute_path = os.path.join(opts.data_root, opts.dataset_name, "attributes.txt")
     
-    # test_dataloader
     test_dataloader = get_loader(image_dir, attribute_path,
                                  dataset_name=opts.dataset_name,
                                  image_size=opts.img_size,
-                                 n_style=opts.n_style, batch_size=52,
+                                 n_style=opts.n_style, batch_size=36,
                                  mode='test', binary=False)
+
     # Model
     generator = GeneratorStyle(n_style=opts.n_style, attr_channel=opts.attr_channel,
                                style_out_channel=opts.style_out_channel,
@@ -43,6 +44,12 @@ def inference(opts):
     # unsupervise font num + 1 dummy id (for supervise)
     attr_unsuper_tolearn = nn.Embedding(opts.unsuper_num+1, opts.attr_channel)  # attribute intensity
 
+
+    if opts.multi_gpu:
+        generator = nn.DataParallel(generator)
+        attribute_embed = nn.DataParallel(attribute_embed)
+        attr_unsuper_tolearn = nn.DataParallel(attr_unsuper_tolearn)
+
     generator = generator.to(device)
     attribute_embed = attribute_embed.to(device)
     attr_unsuper_tolearn = attr_unsuper_tolearn.to(device)
@@ -50,14 +57,14 @@ def inference(opts):
     gen_file = os.path.join(checkpoint_dir, f"best_G.pth")
     attribute_embed_file = os.path.join(checkpoint_dir, f"attribute_embed_best.pth")
     attr_unsuper_file = os.path.join(checkpoint_dir, f"attr_unsuper_embed_best.pth")
-    
+
     generator.load_state_dict(torch.load(gen_file))
     attribute_embed.load_state_dict(torch.load(attribute_embed_file))
     attr_unsuper_tolearn.load_state_dict(torch.load(attr_unsuper_file))
 
     with torch.no_grad():
         test_attrid = torch.tensor([i for i in range(opts.attr_channel)]).to(device)
-        test_attrid = test_attrid.repeat(52, 1)  # 52 is char number
+        test_attrid = test_attrid.repeat(36, 1)  # 52 is char number
         
         test_batch = next(iter(test_dataloader)) 
         test_img_A = test_batch['img_A'].to(device)
@@ -84,8 +91,31 @@ def inference(opts):
         test_intensity = test_attr_B_intensity - test_attr_A_intensity
         test_attr = test_attr_B - test_attr_A
 
-        one_batch_random = torch.rand_like(test_attr_B_intensity[0]).unsqueeze(0).to(device)
+#         # Specific attribute source
+#         img_sample_specific_attr = [test_img_A.data]
         
+#         attr_list = opts.attr_list
+#         attributes = []
+#         for attr in attr_list:
+#             attributes.append(round(0.01 * attr, 2))
+#         attributes = [attributes]
+#         test_intensity_B_beta = torch.tensor(attributes).to(device)
+#         test_intensity_B_beta_u = test_intensity_B_beta.unsqueeze(-1)
+#         test_attr_B_beta = test_intensity_B_beta_u * test_attr_raw_B.clone().detach()
+#         test_intensity_beta = test_intensity_B_beta - test_attr_A_intensity.clone().detach()
+#         test_attr_beta = test_attr_B_beta - test_attr_A.clone().detach()
+#         test_fake_B_beta, _ = generator(test_img_A.clone().detach(), test_styles_A.clone().detach(),
+#                                         test_intensity_beta, test_attr_beta)
+
+#         img_sample_specific_attr.append(test_fake_B_beta.data)
+#         img_sample_specific_attr = torch.cat(img_sample_specific_attr, -2)
+
+#         save_file_sp = os.path.join("experiments", f"specific_attr_source_test.png")
+#         save_image(img_sample_specific_attr, save_file_sp, nrow=52, normalize=True, padding=0)
+        
+         # Specific attribute target
+        # img_sample_specific_attr = [test_img_A.data]
+        img_sample_specific_attr = []
         attr_list = opts.attr_list
         attributes = []
         for attr in attr_list:
@@ -98,10 +128,13 @@ def inference(opts):
         test_attr_beta = test_attr_B_beta - test_attr_A.clone().detach()
         test_fake_B_beta, _ = generator(test_img_A.clone().detach(), test_styles_A.clone().detach(),
                                         test_intensity_beta, test_attr_beta)
+        img_sample_specific_attr.append(test_fake_B_beta.data)
+        img_sample_specific_attr = torch.cat(img_sample_specific_attr, -2)
 
-        img_sample_random_attr=test_fake_B_beta.data
-
-        for idx, img in enumerate(img_sample_random_attr): 
+#         save_file_sp = os.path.join("experiments", f"specific_attr_target_test.png")
+#         save_image(img_sample_specific_attr, save_file_sp, nrow=52, normalize=True, padding=0)
+        
+        for idx, img in enumerate(img_sample_specific_attr): 
             save_file_sp = os.path.join(results_dir, f"inference_{idx}.png")
             save_image(img, save_file_sp, normalize=True, padding=0)
         end = time.time()
@@ -150,6 +183,7 @@ def train(opts):
                                n_res_blocks=opts.n_res_blocks,
                                attention=opts.attention)
     discriminator = DiscriminatorWithClassifier(attr_channel=opts.attr_channel)
+
     # Attrbute embedding
     # attribute: N x 37 -> N x 37 x 64
     attribute_embed = nn.Embedding(opts.attr_channel, opts.attr_embed)
@@ -242,7 +276,7 @@ def train(opts):
             fake_B, content_logits_A = generator(img_A, styles_A, delta_intensity, delta_attr)
 
             pred_fake, real_A_attr_fake, fake_B_attr_fake = discriminator(img_A, fake_B, charclass_B, attr_B_intensity)
-
+            
             if opts.lambda_cx > 0:
                 vgg_fake_B = vgg19(fake_B)
                 vgg_img_B = vgg19(img_B)
@@ -650,14 +684,14 @@ def interp(opts):
 def main():
     parser = get_parser()
     opts = parser.parse_args()
-    opts.unsuper_num = 968
+    opts.unsuper_num = 1179
 
     os.makedirs("experiments", exist_ok=True)
 
     if opts.phase == 'train':
         # Create directories
         log_dir = os.path.join("experiments", opts.experiment_name)
-        os.makedirs(log_dir, exist_ok=False)  # False to prevent multiple train run by mistake
+        os.makedirs(log_dir, exist_ok=True)  # False to prevent multiple train run by mistake
         os.makedirs(os.path.join(log_dir, "samples"), exist_ok=True)
         os.makedirs(os.path.join(log_dir, "checkpoint"), exist_ok=True)
         os.makedirs(os.path.join(log_dir, "results"), exist_ok=True)

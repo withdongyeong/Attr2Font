@@ -342,10 +342,10 @@ class AttrClassifier(nn.Module):
 
 
 class DiscriminatorWithClassifier(nn.Module):
-    def __init__(self, in_channel=3, attr_channel=37, pred_attr=True):
+    def __init__(self, in_channel=3, attr_channel=10, pred_attr=True):
         super(DiscriminatorWithClassifier, self).__init__()
         self.pred_attr = pred_attr
-        self.attr_channel = attr_channel=37
+        self.attr_channel=attr_channel
 
         def discriminator_block(in_filters, out_filters, normalize=True):
             layers = [nn.Conv2d(in_filters, out_filters, 4, 2, 1)]

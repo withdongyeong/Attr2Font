@@ -16,7 +16,7 @@ class ImageAttr(data.Dataset):
     """Dataset class for the ImageAttr dataset."""
     def __init__(self, image_dir, attr_path, transform, mode,
                  binary=False, n_style=4,
-                 char_num=52, unsuper_num=968, train_num=120, val_num=28):
+                 char_num=52, unsuper_num=22, train_num=200, val_num=40):
         """Initialize and preprocess the ImageAttr dataset."""
         self.image_dir = image_dir
         self.attr_path = attr_path
@@ -213,9 +213,9 @@ class ImageAttr(data.Dataset):
 
 
 def get_loader(image_dir, attr_path, image_size=256,
-               batch_size=16, dataset_name='explor_all', mode='train', num_workers=8,
+               batch_size=16, dataset_name='explor_all', mode='train', num_workers=4,
                binary=False, n_style=4,
-               char_num=52, unsuper_num=968, train_num=120, val_num=28):
+               char_num=36, unsuper_num=26, train_num=190, val_num=30):
     """Build and return a data loader."""
     transform = []
     transform.append(T.Resize(image_size))
@@ -226,8 +226,8 @@ def get_loader(image_dir, attr_path, image_size=256,
     if dataset_name == 'explor_all':
         dataset = ImageAttr(image_dir, attr_path, transform,
                             mode, binary, n_style,
-                            char_num=52, unsuper_num=968,
-                            train_num=120, val_num=28)
+                            char_num=36, unsuper_num=1179,
+                            train_num=213, val_num=30)
     data_loader = data.DataLoader(dataset=dataset,
                                   drop_last=True,
                                   batch_size=batch_size,

@@ -17,14 +17,14 @@ def get_parser():
     parser.add_argument("--n_style", type=int, default=4, help="number of style input images")
     # Channel
     parser.add_argument("--channel", type=int, default=3, help="image channel")
-    parser.add_argument("--attr_channel", type=int, default=37, help="attributes channel")
+    parser.add_argument("--attr_channel", type=int, default=10, help="attributes channel")
     parser.add_argument("--attr_embed", type=int, default=64,
                         help="attribute embedding channel, attribute id to attr_embed, must same as image size")
     parser.add_argument("--style_out_channel", type=int, default=128, help="number of style embedding channel")
     parser.add_argument("--n_res_blocks", type=int, default=16, help="number of residual blocks in style encoder")
     parser.add_argument("--check_path", type=str, default="./bestModel")
     parser.add_argument("--infer_path", type=str, default="./inference")
-    parser.add_argument("--attr_list", nargs=37, type=int, default=None)
+    parser.add_argument("--attr_list", nargs=10, type=int, default=None)
     # Model
     parser.add_argument("--attention", type=bool, default=True, help="whether use the self attention layer in the generator")
     parser.add_argument("--dis_pred", type=bool, default=True, help="whether the discriminator predict the attributes")
